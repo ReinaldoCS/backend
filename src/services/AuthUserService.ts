@@ -1,29 +1,55 @@
+import { User } from '@prisma/client';
+import { compareSync } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 
+import { prismaClient } from '../config';
 import { AppError } from '../errors/AppError';
 
 interface IResquest {
-  user: string;
+  email: string;
   password: string;
 }
 
-interface IResponse {
+type IUserInfo = Pick<User, 'email' | 'name' | 'updated_at' | 'created_at'>;
+
+interface IUserDTO {
   auth: boolean;
   token: string;
 }
 
 export class AuthUserService {
-  public execute({ user, password }: IResquest): IResponse {
-    if (user === 'reinaldo' && password === 'teste1') {
-      const id = 1;
-      const token = sign({ id }, 'chave_secreta', { expiresIn: 300 });
+  public async execute({ email, password }: IResquest): Promise<IUserDTO> {
+    const findUser = await prismaClient.user.findUnique({
+      where: {
+        email,
+      },
+    });
 
-      return { auth: true, token };
+    if (!findUser) {
+      throw new AppError({
+        errorCode: 'EMAIL_NOT_FOUND',
+        message: 'Email não encontrado',
+      });
     }
 
-    throw new AppError({
-      errorCode: 'AUTH_ERROR',
-      message: 'erro ao realizar autenticação',
-    });
+    const validatePassword = compareSync(password, findUser.password);
+
+    if (!validatePassword) {
+      throw new AppError({
+        errorCode: 'INVALID_PASSWORD',
+        message: 'Erro na validação da senha',
+      });
+    }
+
+    const user: IUserInfo = {
+      email: findUser.email,
+      name: findUser.name,
+      updated_at: findUser.updated_at,
+      created_at: findUser.created_at,
+    };
+
+    const token = sign(user, process.env.SECRET ?? '', { expiresIn: '1h' });
+
+    return { auth: true, token };
   }
 }

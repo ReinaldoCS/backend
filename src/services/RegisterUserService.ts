@@ -27,7 +27,7 @@ export class RegisterUserService {
       data: {
         name,
         email,
-        Password: { create: { password: hashPass } },
+        password: hashPass,
       },
     });
 

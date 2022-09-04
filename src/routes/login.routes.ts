@@ -4,12 +4,13 @@ import { AuthUserService } from '../services/AuthUserService';
 
 export const loginRouter = Router();
 
-loginRouter.post('/', (request, response) => {
-  const { user, password } = request.body;
+loginRouter.post('/', async (request, response) => {
+  const { email, password } = request.body;
 
   const authUserService = new AuthUserService();
 
-  const { auth, token } = authUserService.execute({ user, password });
+  // const { auth, token } = await authUserService.execute({ user, password });
+  const teste = await authUserService.execute({ email, password });
 
-  return response.json({ auth, token });
+  return response.json(teste);
 });
